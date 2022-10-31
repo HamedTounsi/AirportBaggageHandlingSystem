@@ -1,6 +1,6 @@
 @echo off
 
-set "VIRTUAL_ENV=C:\Users\Hamed Tounsi\PycharmProjects\ModelBasedProject\venv"
+set "VIRTUAL_ENV=C:\Users\Hamed Tounsi\PycharmProjects\AirportBaggageHandlingSystem\venv"
 
 if defined _OLD_VIRTUAL_PROMPT (
     set "PROMPT=%_OLD_VIRTUAL_PROMPT%"
