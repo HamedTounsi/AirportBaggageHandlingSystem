@@ -12,8 +12,8 @@ SIMULATION_TIME = 90
 loaded_luggage = 0
 
 # Global parameters for robots
-ramp_is_available = True
-ramp_walking_time = 5 / 60  # 5 seconds
+RAMP_IS_AVAILABLE = True
+RAMP_WALKING_TIME = 5 / 60  # 5 seconds
 
 
 class Gate:
@@ -26,18 +26,18 @@ class Gate:
         self.ramp_walking_time = ramp_walking_time
         self.ramp_is_available = ramp_is_available
 
+    def outside_distance(self, luggage):
+        print(f"walking to/from luggage_starting_pos and ramp (id: {luggage})")
+        random_time = max(1, np.random.normal(self.loading_time, 1))
+        yield self.env.timeout(random_time)
+
     def walk_on_ramp(self, luggage):
-        #print(f"walking up/down the ramp")
+        print(f"walking up/down the ramp (id: {luggage})")
         random_time = max(1, np.random.normal(self.ramp_walking_time, 1))
         yield self.env.timeout(random_time)
 
     def unload_luggage(self, luggage):
-        #print(f"unloading the luggage inside the airplane if there are less than # robots inside")
-        random_time = max(1, np.random.normal(self.loading_time, 1))
-        yield self.env.timeout(random_time)
-
-    def outside_distance(self, luggage):
-        #print(f"walking to/from luggage_starting_pos and ramp")
+        print(f"unloading the luggage (id: {luggage}) inside the airplane if there are less than # robots inside")
         random_time = max(1, np.random.normal(self.loading_time, 1))
         yield self.env.timeout(random_time)
 
@@ -46,15 +46,10 @@ def luggage(env, id, gate):
     print(f"Luggage (id: {id}) ready for loading. {env.now:.2f}")
     with gate.robot.request() as request:
         yield request
-        print(f"Luggage {id} is being loaded. {env.now:.2f}")
         yield env.process(gate.outside_distance(id))
-        print(f"Walking luggage {id} to ramp")
         yield env.process(gate.walk_on_ramp(id))
-        print(f"Walking luggage {id} up ramp")
         yield env.process(gate.unload_luggage(id))
-        print(f"Unloading luggage {id}")
         yield env.process(gate.walk_on_ramp(id))
-        print(f"Walking down ramp for luggage {id}")
         yield env.process(gate.outside_distance(id))
         print(f"Walking to luggage starting point. Luggage (id: {id}) has been loaded. {env.now:.2f}")
 
@@ -77,7 +72,6 @@ def load_simulation(env, num_robots, num_luggage, loading_time, ramp_walking_tim
 
 print("Starting Luggage loading simulation")
 env = simpy.Environment()
-env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, ramp_walking_time, ramp_is_available))
+env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
 env.run()
 
-print("Luggage loaded: ", loaded_luggage)
