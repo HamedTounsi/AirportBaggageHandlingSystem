@@ -1,6 +1,7 @@
 import simpy
 import random
 import numpy as np
+import arcade
 
 # Parameters
 NUM_ROBOTS = 5
@@ -11,6 +12,41 @@ SIMULATION_TIME = 90
 # counter variable
 loaded_luggage = 0
 
+# Grid setup - Rows / Columns / Width / Height / Margin
+ROW_COUNT = 30
+COLUMN_COUNT = 30
+WIDTH = 30
+HEIGHT = 30
+MARGIN = 2
+
+# Screen setup - Screen_width / Screen_Height / Screen_Title
+SCREEN_HEIGHT = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
+SCREEN_WIDTH = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
+SCREEN_TITLE = "Automated loading system"
+
+class Grid(arcade.Window):
+
+    def __init__(self, width, height, title):
+
+        super().__init__(width, height, title)
+
+        self.grid = []
+        for row in range(ROW_COUNT):
+            self.grid.append([])
+            for column in range(COLUMN_COUNT):
+                self.grid[row].append(0)
+
+        arcade.set_background_color(arcade.color.ANTIQUE_WHITE)
+
+    def on_draw(self):
+        self.clear()
+
+        for row in range(ROW_COUNT):
+            for column in range(COLUMN_COUNT):
+                x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
+                y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
+
+                arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.GRAY)
 
 class Gate:
     def __init__(self, env, num_robots, num_luggage, loading_time):
@@ -18,6 +54,7 @@ class Gate:
         self.robot = simpy.Resource(env, num_robots)
         self.luggage = simpy.Resource(env, num_luggage)
         self.loading_time = loading_time
+
 
     def load(self, luggage):
         random_time = max(1, np.random.normal(self.loading_time, 1))
@@ -49,10 +86,16 @@ def load_simulation(env, num_robots, num_luggage, loading_time):
         env.process(luggage(env, robot_id, gate))
         robot_id += 1
 
+def run_simulation():
+    print("Starting Luggage loading simulation")
+    env = simpy.Environment()
+    env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME))
+    env.run()
+    print("Luggage loaded: ", loaded_luggage)
 
-print("Starting Luggage loading simulation")
-env = simpy.Environment()
-env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME))
-env.run()
+def grid():
+    Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    arcade.run()
 
-print("Luggage loaded: ", loaded_luggage)
+if __name__ == "__main__":
+    grid()
