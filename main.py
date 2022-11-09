@@ -2,6 +2,7 @@ import simpy
 import random
 import numpy as np
 import arcade
+from PIL import Image
 
 # Parameters
 NUM_ROBOTS = 5
@@ -24,11 +25,18 @@ SCREEN_HEIGHT = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
 SCREEN_WIDTH = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 SCREEN_TITLE = "Automated loading system"
 
+SPRITE_SCALING_ROBOT = 0.5
+
 class Grid(arcade.Window):
 
     def __init__(self, width, height, title):
 
         super().__init__(width, height, title)
+
+        self.robot_list = None
+        self.robot_sprite = None
+        #self.luggage_list = None
+
 
         self.grid = []
         for row in range(ROW_COUNT):
@@ -37,6 +45,16 @@ class Grid(arcade.Window):
                 self.grid[row].append(0)
 
         arcade.set_background_color(arcade.color.ANTIQUE_WHITE)
+
+    def setup(self):
+
+        self.robot_list = arcade.SpriteList()
+
+        robot_img = "robot_.png"
+        self.robot_sprite = arcade.Sprite(robot_img, SPRITE_SCALING_ROBOT)
+        self.robot_sprite.center_x = 500
+        self.robot_sprite.center_y = 500
+        self.robot_list.append(self.robot_sprite)
 
     def on_draw(self):
         self.clear()
@@ -47,6 +65,8 @@ class Grid(arcade.Window):
                 y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
 
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.GRAY)
+
+        self.robot_list.draw()
 
 class Gate:
     def __init__(self, env, num_robots, num_luggage, loading_time):
@@ -94,7 +114,8 @@ def run_simulation():
     print("Luggage loaded: ", loaded_luggage)
 
 def grid():
-    Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    window = Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    window.setup()
     arcade.run()
 
 if __name__ == "__main__":
