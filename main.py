@@ -27,6 +27,10 @@ SCREEN_TITLE = "Automated loading system"
 
 SPRITE_SCALING_ROBOT = 0.5
 
+ROBOT_COLOR = arcade.color.GREEN
+ROBOT_COLOR_LUGGAGE = arcade.color.YELLOW
+LUGGAGE_COLOR = arcade.color.ORANGE
+
 
 class Grid(arcade.Window):
 
@@ -46,9 +50,7 @@ class Grid(arcade.Window):
         arcade.set_background_color(arcade.color.ANTIQUE_WHITE)
 
     def setup(self):
-
         self.robot_list = arcade.SpriteList()
-
         robot_img = "robot_.png"
         self.robot_sprite = arcade.Sprite(robot_img, SPRITE_SCALING_ROBOT)
         self.robot_sprite.center_x = SCREEN_WIDTH/2
@@ -64,8 +66,10 @@ class Grid(arcade.Window):
                 y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
 
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.GRAY)
-
+                if row == 5 and column == 5:
+                    arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.YELLOW)
         self.robot_list.draw()
+
 
 class Gate:
     def __init__(self, env, num_robots, num_luggage, loading_time):
@@ -73,7 +77,6 @@ class Gate:
         self.robot = simpy.Resource(env, num_robots)
         self.luggage = simpy.Resource(env, num_luggage)
         self.loading_time = loading_time
-
 
     def load(self, luggage):
         random_time = max(1, np.random.normal(self.loading_time, 1))
@@ -105,6 +108,7 @@ def load_simulation(env, num_robots, num_luggage, loading_time):
         env.process(luggage(env, robot_id, gate))
         robot_id += 1
 
+
 def run_simulation():
     print("Starting Luggage loading simulation")
     env = simpy.Environment()
@@ -112,10 +116,12 @@ def run_simulation():
     env.run()
     print("Luggage loaded: ", loaded_luggage)
 
+
 def grid():
     window = Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     window.setup()
     arcade.run()
+
 
 if __name__ == "__main__":
     grid()
