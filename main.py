@@ -14,18 +14,19 @@ SIMULATION_TIME = 90
 loaded_luggage = 0
 
 # Grid setup - Rows / Columns / Width / Height / Margin
-ROW_COUNT = 30
+ROW_COUNT = 20
 COLUMN_COUNT = 30
-WIDTH = 30
-HEIGHT = 30
+WIDTH = 20
+HEIGHT = 20
 MARGIN = 2
 
 # Screen setup - Screen_width / Screen_Height / Screen_Title
-SCREEN_HEIGHT = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
-SCREEN_WIDTH = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
+SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
+SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 SCREEN_TITLE = "Automated loading system"
 
 SPRITE_SCALING_ROBOT = 0.5
+
 
 class Grid(arcade.Window):
 
@@ -36,8 +37,6 @@ class Grid(arcade.Window):
         self.robot_list = None
         self.robot_sprite = None
         #self.luggage_list = None
-
-
         self.grid = []
         for row in range(ROW_COUNT):
             self.grid.append([])
@@ -52,8 +51,8 @@ class Grid(arcade.Window):
 
         robot_img = "robot_.png"
         self.robot_sprite = arcade.Sprite(robot_img, SPRITE_SCALING_ROBOT)
-        self.robot_sprite.center_x = 500
-        self.robot_sprite.center_y = 500
+        self.robot_sprite.center_x = SCREEN_WIDTH/2
+        self.robot_sprite.center_y = SCREEN_HEIGHT/2
         self.robot_list.append(self.robot_sprite)
 
     def on_draw(self):
