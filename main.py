@@ -1,6 +1,8 @@
 import simpy
 import random
 import numpy as np
+import arcade
+from PIL import Image
 
 # Parameters
 NUM_ROBOTS = 5
@@ -14,6 +16,62 @@ loaded_luggage = 0
 # Global parameters for robots
 RAMP_IS_AVAILABLE = True
 RAMP_WALKING_TIME = 5 / 60  # 5 seconds
+# Grid setup - Rows / Columns / Width / Height / Margin
+ROW_COUNT = 20
+COLUMN_COUNT = 30
+WIDTH = 20
+HEIGHT = 20
+MARGIN = 2
+
+# Screen setup - Screen_width / Screen_Height / Screen_Title
+SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
+SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
+SCREEN_TITLE = "Automated loading system"
+
+SPRITE_SCALING_ROBOT = 0.5
+
+ROBOT_COLOR = arcade.color.GREEN
+ROBOT_COLOR_LUGGAGE = arcade.color.YELLOW
+LUGGAGE_COLOR = arcade.color.ORANGE
+
+
+class Grid(arcade.Window):
+
+    def __init__(self, width, height, title):
+
+        super().__init__(width, height, title)
+
+        self.robot_list = None
+        self.robot_sprite = None
+        #self.luggage_list = None
+        self.grid = []
+        for row in range(ROW_COUNT):
+            self.grid.append([])
+            for column in range(COLUMN_COUNT):
+                self.grid[row].append(0)
+
+        arcade.set_background_color(arcade.color.ANTIQUE_WHITE)
+
+    def setup(self):
+        self.robot_list = arcade.SpriteList()
+        robot_img = "robot_.png"
+        self.robot_sprite = arcade.Sprite(robot_img, SPRITE_SCALING_ROBOT)
+        self.robot_sprite.center_x = SCREEN_WIDTH/2
+        self.robot_sprite.center_y = SCREEN_HEIGHT/2
+        self.robot_list.append(self.robot_sprite)
+
+    def on_draw(self):
+        self.clear()
+
+        for row in range(ROW_COUNT):
+            for column in range(COLUMN_COUNT):
+                x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
+                y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
+
+                arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.GRAY)
+                if row == 5 and column == 5:
+                    arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, arcade.color.YELLOW)
+        self.robot_list.draw()
 
 
 class Gate:
@@ -70,8 +128,20 @@ def load_simulation(env, num_robots, num_luggage, loading_time, ramp_walking_tim
         luggage_id += 1
 
 
-print("Starting Luggage loading simulation")
-env = simpy.Environment()
-env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
-env.run()
 
+
+def run_simulation():
+    print("Starting Luggage loading simulation")
+    env = simpy.Environment()
+    env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
+    env.run()
+
+
+def grid():
+    window = Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    window.setup()
+    arcade.run()
+
+
+if __name__ == "__main__":
+    grid()
