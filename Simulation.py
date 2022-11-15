@@ -1,7 +1,11 @@
+import copy
+
 import simpy
 import random
 import numpy as np
 import arcade
+import time
+from threading import Thread
 
 # Parameters
 NUM_ROBOTS = 1
@@ -37,9 +41,41 @@ LUGGAGE_ROW = 10
 LUGGAGE_COL = 0
 
 LUGGAGE_UNLOAD_ROW = 10
-LUGGAGE_UNLOAD_COL = WIDTH - 1
+LUGGAGE_UNLOAD_COL = 15
 
 ACTIVE_ROBOTS = []
+logic_grid = []
+
+simulation_renders = []
+
+
+def update_active_robots():
+    for i in range(len(ACTIVE_ROBOTS)):
+
+        # If the robot is at the unloading point, then set isCarrying to false
+        if ACTIVE_ROBOTS[i].x == LUGGAGE_UNLOAD_COL and ACTIVE_ROBOTS[i].y == LUGGAGE_UNLOAD_ROW:
+            ACTIVE_ROBOTS[i].unload()
+            logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x+1] = "luggage_drop"
+
+        # move to unload point
+        if ACTIVE_ROBOTS[i].isCarrying:
+            logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 0
+            ACTIVE_ROBOTS[i].moveRobot(ACTIVE_ROBOTS[i].x + 1, ACTIVE_ROBOTS[i].y)
+            logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 1
+            temp_grid = copy.deepcopy(logic_grid)
+            simulation_renders.append(temp_grid)
+
+        # move to luggage point
+        elif ACTIVE_ROBOTS[i].x > 0:
+            logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 0
+            ACTIVE_ROBOTS[i].moveRobot(ACTIVE_ROBOTS[i].x - 1, ACTIVE_ROBOTS[i].y)
+            if ACTIVE_ROBOTS[i].x > 0:
+                logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 2
+            else:
+                logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 0
+            temp_grid = copy.deepcopy(logic_grid)
+            simulation_renders.append(temp_grid)
+
 
 
 class Grid(arcade.Window):
@@ -48,26 +84,22 @@ class Grid(arcade.Window):
 
         super().__init__(width, height, title)
 
-        self.grid = []
         for row in range(ROW_COUNT):
-            self.grid.append([])
+            logic_grid.append([])
             for column in range(COLUMN_COUNT):
                 if row == LUGGAGE_ROW and column == LUGGAGE_COL:
-                    self.grid[row].append("luggage_start")
+                    logic_grid[row].append("luggage_start")
                 else:
-                    self.grid[row].append(0)
+                    logic_grid[row].append(0)
 
         arcade.set_background_color(arcade.color.ANTIQUE_WHITE)
 
-        print("Starting Luggage loading simulation")
-        env = simpy.Environment()
-        env.process(
-            load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
-        env.run()
+        run_simulation()
 
-    """
-    def setup(self):
+    # def setup(self):
+    #    self.on_draw()
 
+    """"
         self.robot_list = arcade.SpriteList()
         #robot_img = "robot_.png"
         self.robot_sprite = arcade.SpriteSolidColor(WIDTH, HEIGHT, ROBOT_COLOR)
@@ -80,16 +112,25 @@ class Grid(arcade.Window):
     def on_draw(self):
         self.clear()
 
-        print(ACTIVE_ROBOTS[0])
+        if len(simulation_renders) == 0:
+            quit()
+
+        time.sleep(0.2)
 
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 # Figure out what color to draw the box
-                if self.grid[row][column] == 0:
+                if simulation_renders[0][row][column] == 0:
                     color = BACKGROUND_COLOR
-                elif self.grid[row][column] == "luggage_start":
+                elif simulation_renders[0][row][column] == 1:
+                    color = ROBOT_COLOR_LUGGAGE
+                elif simulation_renders[0][row][column] == 2:
+                    color = ROBOT_COLOR
+                elif simulation_renders[0][row][column] == "luggage_start":
                     color = LUGGAGE_COLOR
-
+                elif simulation_renders[0][row][column] == "luggage_drop":
+                    color = LUGGAGE_COLOR
+                
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
                 y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
@@ -97,14 +138,8 @@ class Grid(arcade.Window):
                 # Draw the box
                 arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
 
-        # DRAW ROBOTS
-        for i in range(len(ACTIVE_ROBOTS)):
-            # Do the math to figure out where the box is
-            x = (MARGIN + WIDTH) * ACTIVE_ROBOTS[i].x + MARGIN + WIDTH // 2
-            y = (MARGIN + HEIGHT) * ACTIVE_ROBOTS[i].y + MARGIN + HEIGHT // 2
-            color = ROBOT_COLOR if not ACTIVE_ROBOTS[i].isCarrying else ROBOT_COLOR_LUGGAGE
-            # Draw the box
-            arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
+        # Remove the current display from the simulation_renders list
+        simulation_renders.pop(0)
 
 
 class Robot(object):
@@ -118,16 +153,28 @@ class Robot(object):
         self.x = x
         self.y = y
 
+    def unload(self):
+        self.isCarrying = False
+
     def __repr__(self):
         return f"<Test x:{self.x} y:{self.y}>"
 
+"""
+class UpdateGrid(Thread):
+    def __init__(self, event):
+        Thread.__init__(self)
+        self.stopped = event
 
-# def update(self):
+    def run(self):
+        while not self.stopped.wait(0.5):
+            print("updating grid")
+            update_active_robots()
+            # call a function
+"""
 
 
 class Gate:
     def __init__(self, env, num_robots, num_luggage, loading_time, ramp_walking_time, ramp_is_available):
-
         self.env = env
         self.robot = simpy.Resource(env, num_robots)
         self.luggage = simpy.Resource(env, num_luggage)
@@ -136,15 +183,18 @@ class Gate:
         self.ramp_is_available = ramp_is_available
 
     def load(self, robot, id):
-
         ACTIVE_ROBOTS.append(robot)
-        ##print(robot.x != LUGGAGE_UNLOAD_COL or robot.y != LUGGAGE_UNLOAD_ROW)
+        # print(robot.x != LUGGAGE_UNLOAD_COL or robot.y != LUGGAGE_UNLOAD_ROW)
         # print(robot.x, LUGGAGE_UNLOAD_COL, robot.y, LUGGAGE_UNLOAD_ROW)
-        while robot.x != LUGGAGE_UNLOAD_COL and robot.y != LUGGAGE_UNLOAD_ROW:
-            for robot in ACTIVE_ROBOTS:
-                if robot.luggageID == id:
-                    robot.moveRobot(robot.x + 1, robot.y)
-                    break
+
+        while robot.x != LUGGAGE_COL or robot.y != LUGGAGE_ROW:
+            update_active_robots()
+            #time.sleep(0.1)
+
+        # remove robot from ACTIVE_ROBOTS
+        for i in range(len(ACTIVE_ROBOTS)):
+            if ACTIVE_ROBOTS[i].luggageID == id:
+                ACTIVE_ROBOTS.pop(i)
 
         random_time = max(1, np.random.normal(self.loading_time, 1))
         yield self.env.timeout(random_time)
@@ -154,7 +204,7 @@ class Gate:
 def luggage(env, id, gate):
     print(f"Luggage (id: {id}) ready for loading. {env.now:.2f}")
     with gate.robot.request() as request:
-        robot = Robot(id, LUGGAGE_COL, LUGGAGE_ROW, True)
+        robot = Robot(id, LUGGAGE_COL+1, LUGGAGE_ROW, True)
         yield request
         print(f"Luggage {id} is being loaded. {env.now:.2f}")
         yield env.process(gate.load(robot, id))
@@ -185,6 +235,7 @@ def run_simulation():
 
 
 def grid():
+    print("Starting grid")
     Grid(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
     arcade.run()
 
