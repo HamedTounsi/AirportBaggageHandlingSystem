@@ -5,6 +5,10 @@ import random
 import numpy as np
 import arcade
 import time
+
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
 from threading import Thread
 
 # Parameters
@@ -40,6 +44,20 @@ BACKGROUND_COLOR = arcade.color.GRAY
 LUGGAGE_ROW = 10
 LUGGAGE_COL = 0
 
+# Stacks with the available luggage storage
+LEFT_STORAGE = [(20,23),(20,24),(20,25),(19,23),(19,24),(19,25),(18,23),(18,24),(18,25),(17,23),(17,24),(17,25),
+                 (16,23),(16,24),(16,25),(15,23),(15,24),(15,25),(14,23),(14,24),(14,25)]
+RIGHT_STORAGE = [(0,23),(0,24),(0,25),(1,23),(1,24),(1,25),(2,23),(2,24),(2,25),(3,23),(3,24),(3,25),(4,23),(4,24),(4,25),(5,23),(5,24),(5,25),
+                 (6,23),(6,24),(6,25),(7,23),(7,24),(7,25),(8,23),(8,24),(8,25),(9,23),(9,24),(9,25),(10,23),(10,24),(10,25),
+                 (11,23),(11,24),(11,25),(12,23),(12,24),(12,25)]
+
+WALL = [(0,22),(0,26),(1,22),(1,26),(2,22),(2,26),(3,22),(3,26),(4,22),(4,26),(5,22),(5,26),(6,22),(6,26),(7,22),(7,26),
+        (8,22),(8,26),(9,22),(9,26),(10,22),(10,26),(11,22),(11,26),(12,18),(12,19),(12,20),(12,21),(12,22),(12,26),(13,26),
+        (14,22),(14,26),(14,18),(14,19),(14,20),(14,21),(15,22),(15,26),(16,22),(16,26),(17,22),(17,26),(18,22),(18,26),
+        (19,22),(19,26),(20,22),(20,26)]
+
+RAMP = [(13,18),(13,19),(13,20),(13,21),(13,22)]
+
 LUGGAGE_UNLOAD_ROW = 10
 LUGGAGE_UNLOAD_COL = 15
 
@@ -51,7 +69,6 @@ simulation_renders = []
 
 def update_active_robots():
     for i in range(len(ACTIVE_ROBOTS)):
-
         # If the robot is at the unloading point, then set isCarrying to false
         if ACTIVE_ROBOTS[i].x == LUGGAGE_UNLOAD_COL and ACTIVE_ROBOTS[i].y == LUGGAGE_UNLOAD_ROW:
             ACTIVE_ROBOTS[i].unload()
@@ -75,7 +92,6 @@ def update_active_robots():
                 logic_grid[ACTIVE_ROBOTS[i].y][ACTIVE_ROBOTS[i].x] = 0
             temp_grid = copy.deepcopy(logic_grid)
             simulation_renders.append(temp_grid)
-
 
 
 class Grid(arcade.Window):
@@ -130,6 +146,20 @@ class Grid(arcade.Window):
                     color = LUGGAGE_COLOR
                 elif simulation_renders[0][row][column] == "luggage_drop":
                     color = LUGGAGE_COLOR
+                # Giv color to luggage storage, wall, and ramp
+                for (x, y) in LEFT_STORAGE:
+                    if row == x and column == y:
+                        color = arcade.color.BABY_PINK
+                for (x, y) in RIGHT_STORAGE:
+                    if row == x and column == y:
+                        color = arcade.color.BABY_PINK
+                for (x, y) in WALL:
+                    if row == x and column == y:
+                        color = arcade.color.BLACK
+                for (x, y) in RAMP:
+                    if row == x and column == y:
+                        color = arcade.color.RED
+
                 
                 # Do the math to figure out where the box is
                 x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
@@ -187,6 +217,8 @@ class Gate:
         # print(robot.x != LUGGAGE_UNLOAD_COL or robot.y != LUGGAGE_UNLOAD_ROW)
         # print(robot.x, LUGGAGE_UNLOAD_COL, robot.y, LUGGAGE_UNLOAD_ROW)
 
+        start = (robot.y, robot.x)
+        end = LEFT_STORAGE.pop(0)
         while robot.x != LUGGAGE_COL or robot.y != LUGGAGE_ROW:
             update_active_robots()
             #time.sleep(0.1)
