@@ -5,7 +5,6 @@ import random
 import numpy as np
 import arcade
 import time
-from threading import Thread
 
 """" CONFIGURATION PARAMETERS  """
 # Parameters
@@ -40,7 +39,7 @@ LUGGAGE_COLOR = arcade.color.ORANGE
 OBSTACLE_COLOR = arcade.color.BLACK
 BACKGROUND_COLOR = arcade.color.GRAY
 RAMP_COLOR = arcade.color.RED
-LUGGAGE_DROP_SPACE_COLOR = arcade.color.PINK
+LUGGAGE_DROP_SPACE_COLOR = arcade.color.BABY_PINK
 
 LUGGAGE_ROW = 10
 LUGGAGE_COL = 0
@@ -146,7 +145,6 @@ class Grid(arcade.Window):
                 elif simulation_renders[0][row][column] == "luggage_drop_space":
                     color = LUGGAGE_DROP_SPACE_COLOR
                 elif simulation_renders[0][row][column] == "wall":
-                    #print(row,column)
                     color = OBSTACLE_COLOR
                 elif simulation_renders[0][row][column] == "ramp":
                     color = RAMP_COLOR
@@ -204,15 +202,11 @@ class Gate:
 
     def load(self, robot, id):
         ACTIVE_ROBOTS.append(robot)
-        # print(robot.x != LUGGAGE_UNLOAD_COL or robot.y != LUGGAGE_UNLOAD_ROW)
-        # print(robot.x, LUGGAGE_UNLOAD_COL, robot.y, LUGGAGE_UNLOAD_ROW)
 
         while robot.x != LUGGAGE_COL or robot.y != LUGGAGE_ROW:
             update_active_robot(id)
-            #print("updating robot ",id,len(ACTIVE_ROBOTS),ACTIVE_ROBOTS)
             time_for_step = max(1, np.random.normal(self.loading_time, 1))
             yield self.env.timeout(time_for_step)
-            # time.sleep(0.1)
 
         # remove robot from ACTIVE_ROBOTS
         for i in range(len(ACTIVE_ROBOTS)):
