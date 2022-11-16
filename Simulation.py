@@ -7,11 +7,15 @@ import arcade
 import time
 from threading import Thread
 
+
+"""" CONFIGURATION PARAMETERS  """
 # Parameters
 NUM_ROBOTS = 1
 NUM_LUGGAGE = 2
 AVG_LOADING_TIME = 2
 
+
+"""" LOGIC/GRID PARAMETERS """
 # counter variable
 loaded_luggage = 0
 
