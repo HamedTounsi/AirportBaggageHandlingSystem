@@ -12,8 +12,8 @@ from pathfinding.finder.a_star import AStarFinder
 
 """" CONFIGURATION PARAMETERS  """
 # Parameters
-NUM_ROBOTS = 2
-NUM_LUGGAGE = 3
+NUM_ROBOTS = 3
+NUM_LUGGAGE = 5
 AVG_LOADING_TIME = 2
 
 # Stacks with the available luggage storage (row, col)
@@ -92,7 +92,6 @@ def update_active_robot(id):
 
             global RAMP_IS_AVAILABLE
             global STORED_SLOTS
-            #(ACTIVE_ROBOTS[i])
 
             # If the robot has unloaded the luggage then find the way back to luggage spawn
             if not ACTIVE_ROBOTS[i].isCarrying:
@@ -228,6 +227,20 @@ def update_active_robot(id):
                     ACTIVE_ROBOTS[i].setIsCarrying(False)
                     ACTIVE_ROBOTS[i].setIsUnloading(False)
 
+            # Set cells in simulation_renders to match luggage and robot position
+            """
+            robot_carrying = 2
+            robot_not_carrying = 3
+            luggage_pos = 4
+            """
+            for lgs in range(len(STORED_SLOTS)):
+                simulation_renders[-1][STORED_SLOTS[lgs][0]][STORED_SLOTS[lgs][1]] = 4
+            for rbs in range(len(ACTIVE_ROBOTS)):
+                if ACTIVE_ROBOTS[i].isCarrying:
+                    simulation_renders[-1][ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 2
+                else:
+                    simulation_renders[-1][ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 3
+
             break
         """
         # If the robot is at the unloading point, then set isCarrying to false
@@ -310,11 +323,21 @@ class Visualization(arcade.Window):
             quit()
 
         time.sleep(0.2)
-
+        """
+                    robot_carrying = 2
+                    robot_not_carrying = 3
+                    luggage_pos = 4
+                    """
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 # If luggage starting point
-                if row == LUGGAGE_ROW and column == LUGGAGE_COL:
+                if simulation_renders[0][row][column] == 2:
+                    color = ROBOT_COLOR_LUGGAGE
+                elif simulation_renders[0][row][column] == 3:
+                    color = ROBOT_COLOR
+                elif simulation_renders[0][row][column] == 4:
+                    color = LUGGAGE_COLOR
+                elif row == LUGGAGE_ROW and column == LUGGAGE_COL:
                     # simulation_renders[0][row][column] = 0
                     color = LUGGAGE_COLOR
                 # if wall
@@ -322,8 +345,6 @@ class Visualization(arcade.Window):
                         (row == 12 and (17 < column < 23)) or (row == 14 and (17 < column < 23)):
                     # simulation_renders[0][row][column] = 0
                     color = OBSTACLE_COLOR
-                elif simulation_renders[0][row][column] == 0:
-                    color = ROBOT_COLOR
                 # if ramp
                 elif row == 13 and 17 < column < 23:
                     # simulation_renders[0][row][column] = 1
@@ -332,13 +353,10 @@ class Visualization(arcade.Window):
                 elif (22 < column < 26) and (row < 13 or row > 13):
                     # simulation_renders[0][row][column] = 1
                     color = LUGGAGE_DROP_SPACE_COLOR
-                # if luggage has been loaded here
-                elif (22 < column < 26) and (row < 13 or row > 13) and simulation_renders[0][row][column] == 1:
-                    color = LUGGAGE_COLOR
                 else:
                     # simulation_renders[0][row][column] = 1
                     color = BACKGROUND_COLOR
-                print(STORED_SLOTS)
+
                 #for i in range(len(STORED_SLOTS)):
                 #    if STORED_SLOTS[i][0] == row and STORED_SLOTS[i][1] == column:
                 #        color = LUGGAGE_COLOR
