@@ -1,10 +1,7 @@
 import copy
-
 import simpy
-import random
 import numpy as np
 import arcade
-import time
 
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
@@ -12,9 +9,9 @@ from pathfinding.finder.a_star import AStarFinder
 
 """" CONFIGURATION PARAMETERS  """
 # Parameters
-NUM_ROBOTS = 3
-NUM_LUGGAGE = 5
-AVG_LOADING_TIME = 2
+NUM_ROBOTS = 10
+NUM_LUGGAGE = 30
+AVG_STEP_TIME = 1/120
 
 # Stacks with the available luggage storage (row, col)
 LEFT_STORAGE = [(19, 23), (19, 24), (19, 25), (18, 23), (18, 24), (18, 25), (17, 23),
@@ -40,11 +37,12 @@ STORED_SLOTS = []
 
 """" LOGIC/GRID PARAMETERS """
 # counter variable
-loaded_luggage = 0
+REMAINING_LUGGAGES = NUM_LUGGAGE - NUM_ROBOTS
 
 # Global parameters for robots
 RAMP_IS_AVAILABLE = True
 RAMP_WALKING_TIME = 5 / 60  # 5 seconds
+NUM_OF_ROBOTS_INSIDE = 0
 
 LUGGAGE_ROW = 10
 LUGGAGE_COL = 0
@@ -91,7 +89,8 @@ def update_active_robot(id):
         if ACTIVE_ROBOTS[i].luggageID == id:
 
             global RAMP_IS_AVAILABLE
-            global STORED_SLOTS
+            global REMAINING_LUGGAGES
+            global NUM_OF_ROBOTS_INSIDE
 
             # If the robot has unloaded the luggage then find the way back to luggage spawn
             if not ACTIVE_ROBOTS[i].isCarrying:
@@ -107,7 +106,9 @@ def update_active_robot(id):
                 # finds path from start -> end, and amount of runs required to find a path
                 finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
                 path, runs = finder.find_path(start, end, grid)
-                if len(path) == 0:
+                if len(path) == 0 or (not RAMP_IS_AVAILABLE and not ACTIVE_ROBOTS[i].isOutside):
+                    # if logic_grid[LUGGAGE_ROW][LUGGAGE_COL] == 0:
+                    #    logic_grid[LUGGAGE_ROW][LUGGAGE_COL] = 1
                     break
                 #    yield self.env.timeout(1 / 60)
 
@@ -118,10 +119,16 @@ def update_active_robot(id):
                 # set old position to unlocked
                 logic_grid[path[0][1]][path[0][0]] = 1
                 temp_grid = copy.deepcopy(logic_grid)
-                simulation_renders.append(temp_grid)
+                updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
+                simulation_renders.append(updated_grid)
+
+                if ACTIVE_ROBOTS[i].col == RAMP_ENTRANCE_COL and ACTIVE_ROBOTS[i].row == RAMP_ENTRANCE_ROW:
+                    ACTIVE_ROBOTS[i].setIsOutside(True)
+                    NUM_OF_ROBOTS_INSIDE = NUM_OF_ROBOTS_INSIDE - 1
 
                 if ACTIVE_ROBOTS[i].col == LUGGAGE_COL and ACTIVE_ROBOTS[i].row == LUGGAGE_ROW:
                     logic_grid[LUGGAGE_ROW][LUGGAGE_COL] = 1
+                    REMAINING_LUGGAGES = REMAINING_LUGGAGES - 1
 
             # If outside and carrying a luggage, find the way to the ramp entrance
             elif ACTIVE_ROBOTS[i].isCarrying and ACTIVE_ROBOTS[i].isOutside and not ACTIVE_ROBOTS[i].isOnRamp:
@@ -138,60 +145,70 @@ def update_active_robot(id):
                 # finds path from start -> end, and amount of runs required to find a path
                 finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
                 path, runs = finder.find_path(start, end, grid)
-                if len(path) == 0:
+
+                # break if the next step in the closest path is on the luggage starting position
+                if len(path) == 0 or (path[1][1] == LUGGAGE_ROW and path[1][0] == LUGGAGE_COL) or (
+                        ACTIVE_ROBOTS[i].isOutside and NUM_OF_ROBOTS_INSIDE >= 3) or not RAMP_IS_AVAILABLE:
                     break
                 #    yield self.env.timeout(1 / 60)
 
                 # set new robot position
                 ACTIVE_ROBOTS[i].moveRobot(path[1][1], path[1][0])
                 logic_grid[path[1][1]][path[1][0]] = 0
-                #print(ACTIVE_ROBOTS[i], path)
+                # print(ACTIVE_ROBOTS[i], path)
                 # set old position to unlocked
                 logic_grid[path[0][1]][path[0][0]] = 1
                 temp_grid = copy.deepcopy(logic_grid)
-                simulation_renders.append(temp_grid)
+                updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
+                simulation_renders.append(updated_grid)
                 if ACTIVE_ROBOTS[i].row == RAMP_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == RAMP_ENTRANCE_COL:
                     ACTIVE_ROBOTS[i].setIsOnRamp(True)
+                    ACTIVE_ROBOTS[i].setIsOutside(False)
                     RAMP_IS_AVAILABLE = False
 
             # When on the ramp and carrying luggage, go inside the airplane
             elif ACTIVE_ROBOTS[i].isOnRamp and ACTIVE_ROBOTS[i].isCarrying:
                 logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 1
-                ACTIVE_ROBOTS[i].moveRobot(ACTIVE_ROBOTS[i].row, ACTIVE_ROBOTS[i].col+1)
-                logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 0
-
-                temp_grid = copy.deepcopy(logic_grid)
-                simulation_renders.append(temp_grid)
-
-                if ACTIVE_ROBOTS[i].row == AIRPLANE_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == AIRPLANE_ENTRANCE_COL:
-                    ACTIVE_ROBOTS[i].setIsOutside(False)
-                    ACTIVE_ROBOTS[i].setIsOnRamp(False)
-                    RAMP_IS_AVAILABLE = True
-
-            # When on the ramp and not carrying luggage, go left
-            elif ACTIVE_ROBOTS[i].isOnRamp and not ACTIVE_ROBOTS[i].isCarrying:
-                logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 1
                 ACTIVE_ROBOTS[i].moveRobot(ACTIVE_ROBOTS[i].row, ACTIVE_ROBOTS[i].col + 1)
                 logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 0
+
                 temp_grid = copy.deepcopy(logic_grid)
-                simulation_renders.append(temp_grid)
+                updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
+                simulation_renders.append(updated_grid)
 
                 if ACTIVE_ROBOTS[i].row == AIRPLANE_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == AIRPLANE_ENTRANCE_COL:
                     ACTIVE_ROBOTS[i].setIsOutside(False)
                     ACTIVE_ROBOTS[i].setIsOnRamp(False)
                     RAMP_IS_AVAILABLE = True
+                    NUM_OF_ROBOTS_INSIDE = NUM_OF_ROBOTS_INSIDE + 1
+
+                # When on the ramp and not carrying luggage, go left
+                """
+                elif ACTIVE_ROBOTS[i].isOnRamp and not ACTIVE_ROBOTS[i].isCarrying:
+                    logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 1
+                    ACTIVE_ROBOTS[i].moveRobot(ACTIVE_ROBOTS[i].row, ACTIVE_ROBOTS[i].col + 1)
+                    logic_grid[ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 0
+                    temp_grid = copy.deepcopy(logic_grid)
+                    updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
+                    simulation_renders.append(updated_grid)
+    
+                    if ACTIVE_ROBOTS[i].row == AIRPLANE_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == AIRPLANE_ENTRANCE_COL:
+                        ACTIVE_ROBOTS[i].setIsOutside(False)
+                        ACTIVE_ROBOTS[i].setIsOnRamp(False)
+                        RAMP_IS_AVAILABLE = True
+                """
 
             # if inside and carrying luggage, find a place to unload it
             elif not ACTIVE_ROBOTS[i].isOutside and not ACTIVE_ROBOTS[i].isUnloading:
                 if len(LEFT_STORAGE) > 0:
-                    ACTIVE_ROBOTS[i].setUnloadCoordinates(LEFT_STORAGE[0][0],LEFT_STORAGE[0][1])
+                    ACTIVE_ROBOTS[i].setUnloadCoordinates(LEFT_STORAGE[0][0], LEFT_STORAGE[0][1])
                     ACTIVE_ROBOTS[i].setIsUnloading(True)
-                    #STORED_SLOTS.append(LEFT_STORAGE[0])
+                    # STORED_SLOTS.append(LEFT_STORAGE[0])
                     LEFT_STORAGE.pop(0)
                 elif len(RIGHT_STORAGE) > 0:
                     ACTIVE_ROBOTS[i].setUnloadCoordinates(RIGHT_STORAGE[0][0], RIGHT_STORAGE[0][1])
                     ACTIVE_ROBOTS[i].setIsUnloading(True)
-                    #STORED_SLOTS.append(RIGHT_STORAGE[0])
+                    # STORED_SLOTS.append(RIGHT_STORAGE[0])
                     RIGHT_STORAGE.pop(0)
                 else:
                     print("AIRPLANE FULL")
@@ -208,7 +225,7 @@ def update_active_robot(id):
                 # finds path from start -> end, and amount of runs required to find a path
                 finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
                 path, runs = finder.find_path(start, end, grid)
-                if len(path) == 0:
+                if len(path) == 0 or (ACTIVE_ROBOTS[i].isOutside and NUM_OF_ROBOTS_INSIDE >= 3):
                     break
                 #    yield self.env.timeout(1 / 60)
 
@@ -219,27 +236,15 @@ def update_active_robot(id):
                 # set old position to unlocked
                 logic_grid[path[0][1]][path[0][0]] = 1
                 temp_grid = copy.deepcopy(logic_grid)
-                simulation_renders.append(temp_grid)
+                updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
+                simulation_renders.append(updated_grid)
 
                 # If robot is on the unloading point
                 if ACTIVE_ROBOTS[i].row == ACTIVE_ROBOTS[i].unloadRow \
                         and ACTIVE_ROBOTS[i].col == ACTIVE_ROBOTS[i].unloadCol:
                     ACTIVE_ROBOTS[i].setIsCarrying(False)
                     ACTIVE_ROBOTS[i].setIsUnloading(False)
-
-            # Set cells in simulation_renders to match luggage and robot position
-            """
-            robot_carrying = 2
-            robot_not_carrying = 3
-            luggage_pos = 4
-            """
-            for lgs in range(len(STORED_SLOTS)):
-                simulation_renders[-1][STORED_SLOTS[lgs][0]][STORED_SLOTS[lgs][1]] = 4
-            for rbs in range(len(ACTIVE_ROBOTS)):
-                if ACTIVE_ROBOTS[i].isCarrying:
-                    simulation_renders[-1][ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 2
-                else:
-                    simulation_renders[-1][ACTIVE_ROBOTS[i].row][ACTIVE_ROBOTS[i].col] = 3
+                    STORED_SLOTS.append((ACTIVE_ROBOTS[i].unloadRow, ACTIVE_ROBOTS[i].unloadCol))
 
             break
         """
@@ -270,6 +275,31 @@ def update_active_robot(id):
         """
 
 
+def update_grid_for_render(logic_grid, robots):
+    # Set cells in simulation_renders to match luggage and robot position
+    """
+    robot_carrying = 2
+    robot_not_carrying = 3
+    luggage_pos = 4
+    """
+    global STORED_SLOTS
+    global REMAINING_LUGGAGES
+
+    for lgs in range(len(STORED_SLOTS)):
+        logic_grid[STORED_SLOTS[lgs][0]][STORED_SLOTS[lgs][1]] = 4
+    for robot in robots:
+        if robot.isCarrying:
+            logic_grid[robot.row][robot.col] = 2
+        else:
+            logic_grid[robot.row][robot.col] = 3
+
+    # only render luggage starting point if there are remaining luggages
+    if REMAINING_LUGGAGES > 0:
+        logic_grid[LUGGAGE_ROW][LUGGAGE_COL] = 4
+
+    return logic_grid
+
+
 class Visualization(arcade.Window):
 
     def __init__(self, width, height, title):
@@ -279,9 +309,7 @@ class Visualization(arcade.Window):
         for row in range(ROW_COUNT):
             logic_grid.append([])
             for column in range(COLUMN_COUNT):
-                if row == LUGGAGE_ROW and column == LUGGAGE_COL:
-                    logic_grid[row].append(1)
-                elif (column == 22 and (row < 13 or row > 13)) or column == 26 or \
+                if (column == 22 and (row < 13 or row > 13)) or column == 26 or \
                         (row == 12 and (17 < column < 23)) or (row == 14 and (17 < column < 23)):
                     logic_grid[row].append(0)
                 elif row == 13 and 17 < column < 23:
@@ -322,12 +350,13 @@ class Visualization(arcade.Window):
         if len(simulation_renders) == 0:
             quit()
 
-        time.sleep(0.2)
+        #time.sleep(0.05)
         """
                     robot_carrying = 2
                     robot_not_carrying = 3
                     luggage_pos = 4
                     """
+
         for row in range(ROW_COUNT):
             for column in range(COLUMN_COUNT):
                 # If luggage starting point
@@ -337,9 +366,9 @@ class Visualization(arcade.Window):
                     color = ROBOT_COLOR
                 elif simulation_renders[0][row][column] == 4:
                     color = LUGGAGE_COLOR
-                elif row == LUGGAGE_ROW and column == LUGGAGE_COL:
-                    # simulation_renders[0][row][column] = 0
-                    color = LUGGAGE_COLOR
+                # elif row == LUGGAGE_ROW and column == LUGGAGE_COL:
+                # simulation_renders[0][row][column] = 0
+                #    color = LUGGAGE_COLOR
                 # if wall
                 elif (column == 22 and (row < 13 or row > 13)) or column == 26 or \
                         (row == 12 and (17 < column < 23)) or (row == 14 and (17 < column < 23)):
@@ -357,7 +386,7 @@ class Visualization(arcade.Window):
                     # simulation_renders[0][row][column] = 1
                     color = BACKGROUND_COLOR
 
-                #for i in range(len(STORED_SLOTS)):
+                # for i in range(len(STORED_SLOTS)):
                 #    if STORED_SLOTS[i][0] == row and STORED_SLOTS[i][1] == column:
                 #        color = LUGGAGE_COLOR
                 #        print(color)
@@ -400,7 +429,7 @@ class Visualization(arcade.Window):
 
 class Robot(object):
     def __init__(self, luggageID, row, col, isCarrying=True, isOutside=True, isUnloading=False, isOnRamp=False,
-                 unloadRow=None,unloadCol=None):
+                 unloadRow=None, unloadCol=None):
         self.luggageID = luggageID
         self.col = col
         self.row = row
@@ -427,7 +456,7 @@ class Robot(object):
     def setIsOnRamp(self, isOnRamp):
         self.isOnRamp = isOnRamp
 
-    def setUnloadCoordinates(self,row,col):
+    def setUnloadCoordinates(self, row, col):
         self.unloadRow = row
         self.unloadCol = col
 
@@ -450,7 +479,9 @@ class Gate:
 
         while robot.row != LUGGAGE_ROW or robot.col != LUGGAGE_COL:
             update_active_robot(id)
-            time_for_step = max(1, np.random.normal(self.loading_time, 1))
+            time_for_step = max(self.loading_time/2, np.random.normal(self.loading_time, self.loading_time/2))
+            #print(time_for_step)
+            #time_for_step = self.loading_time
             yield self.env.timeout(time_for_step)
 
         # remove robot from ACTIVE_ROBOTS
@@ -466,15 +497,19 @@ def luggage(env, id, gate):
     print(f"Luggage (id: {id}) ready for loading. {env.now:.2f}")
     with gate.robot.request() as request:
         yield request
-        while logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] == 0:
-            if logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] == 0:
-                logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] = 1
+        while logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] == 0 or (logic_grid[LUGGAGE_ROW - 1][LUGGAGE_COL + 1] == 0
+                                                                 and logic_grid[LUGGAGE_ROW + 1][LUGGAGE_COL + 1] == 0
+                                                                 and logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 2] == 0):
+            if logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] == 0 or (logic_grid[LUGGAGE_ROW - 1][LUGGAGE_COL + 1] == 0
+                                                                  and logic_grid[LUGGAGE_ROW + 1][LUGGAGE_COL + 1] == 0
+                                                                  and logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 2] == 0):
+                yield env.timeout(1/120)
             else:
-                yield env.timeout(1)
+                logic_grid[LUGGAGE_ROW][LUGGAGE_COL + 1] = 0
         robot = Robot(id, LUGGAGE_ROW, LUGGAGE_COL + 1)
-        print(f"Luggage {id} is being loaded. {env.now:.2f}")
+        # print(f"Luggage {id} is being loaded. {env.now:.2f}")
         yield env.process(gate.load(robot, id))
-        print(f"Luggage (id: {id}) has been loaded. {env.now:.2f}")
+        # print(f"Luggage (id: {id}) has been loaded. {env.now:.2f}")
 
 
 def load_simulation(env, num_robots, num_luggage, loading_time, ramp_walking_time, ramp_is_available):
@@ -496,7 +531,7 @@ def load_simulation(env, num_robots, num_luggage, loading_time, ramp_walking_tim
 def run_simulation():
     print("Starting Luggage loading simulation")
     env = simpy.Environment()
-    env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_LOADING_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
+    env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_STEP_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
     env.run()
 
 

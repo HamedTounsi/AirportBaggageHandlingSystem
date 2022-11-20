@@ -60,7 +60,7 @@
       <recent name="C:\Users\Hamed Tounsi\PycharmProjects\AirportBaggageHandlingSystem" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.runfile">
+  <component name="RunManager" selected="Python.Simulation">
     <configuration name="Simulation (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="ModelBasedProject" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -203,8 +203,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.runfile" />
         <item itemvalue="Python.Simulation" />
+        <item itemvalue="Python.runfile" />
         <item itemvalue="Python.pathfinding_test" />
         <item itemvalue="Python.Simulation (1)" />
         <item itemvalue="Python.thread_example" />
@@ -285,7 +285,6 @@
         </entry>
       </map>
     </option>
-    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Grid setup" />
@@ -295,25 +294,37 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Simulation.py</url>
-          <line>361</line>
-          <option name="timeStamp" value="73" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/runfile.py</url>
           <line>365</line>
           <option name="timeStamp" value="74" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Simulation.py</url>
+          <line>507</line>
+          <option name="timeStamp" value="142" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Simulation.py</url>
+          <line>508</line>
+          <option name="timeStamp" value="144" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Simulation.py</url>
+          <line>499</line>
+          <option name="timeStamp" value="146" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Simulation.py</url>
+          <line>503</line>
+          <option name="timeStamp" value="147" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
         <watch expression="self.robot.count" />
+        <watch expression="WALL" />
       </configuration>
     </watches-manager>
-  </component>
-  <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/AirportBaggageHandlingSystem$runfile.coverage" NAME="runfile Coverage Results" MODIFIED="1668765475705" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/AirportBaggageHandlingSystem$Simulation.coverage" NAME="Simulation Coverage Results" MODIFIED="1668755961924" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
