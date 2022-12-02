@@ -18,6 +18,6 @@ Additionaly, in case of being unable to run the code for whatever reason, an exe
 been created in the \dist folder, with a pre-set configuration of:
 	- NUM_ROBOTS = 10
 	- NUM_LUGGAGE = 30
-	- AVG_STEP_TIME = 1 / 120
+	- AVG_STEP_TIME = 3 / 60
 
 The 'Simulation.exe' program should give the viewer an overview of how the visualization looks like.

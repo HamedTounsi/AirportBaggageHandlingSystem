@@ -11,7 +11,7 @@ from pathfinding.finder.a_star import AStarFinder
 # Parameters
 NUM_ROBOTS = 10
 NUM_LUGGAGE = 30
-AVG_STEP_TIME = 1/120
+AVG_STEP_TIME = 3/60
 
 # Stacks with the available luggage storage (row, col)
 LEFT_STORAGE = [(19, 23), (19, 24), (19, 25), (18, 23), (18, 24), (18, 25), (17, 23),
@@ -530,7 +530,7 @@ def load_simulation(env, num_robots, num_luggage, loading_time, ramp_walking_tim
 
 def run_simulation():
     print("Starting Luggage loading simulation")
-    env = simpy.Environment()
+    env = simpy.rt.RealtimeEnvironment(initial_time=0, factor=1.0, strict=False)
     env.process(load_simulation(env, NUM_ROBOTS, NUM_LUGGAGE, AVG_STEP_TIME, RAMP_WALKING_TIME, RAMP_IS_AVAILABLE))
     env.run()
 
