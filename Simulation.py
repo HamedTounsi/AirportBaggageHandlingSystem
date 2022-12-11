@@ -9,8 +9,8 @@ from pathfinding.finder.a_star import AStarFinder
 
 """" CONFIGURATION PARAMETERS  """
 # Parameters
-NUM_ROBOTS = 1
-NUM_LUGGAGE = 5
+NUM_ROBOTS = 4
+NUM_LUGGAGE = 30
 AVG_STEP_TIME = 3/60
 
 # Stacks with the available luggage storage (row, col)
@@ -118,9 +118,14 @@ def update_active_robot(id):
                 updated_grid = update_grid_for_render(temp_grid, ACTIVE_ROBOTS)
                 simulation_renders.append(updated_grid)
 
-                if ACTIVE_ROBOTS[i].col == RAMP_ENTRANCE_COL and ACTIVE_ROBOTS[i].row == RAMP_ENTRANCE_ROW:
+                if ACTIVE_ROBOTS[i].row == AIRPLANE_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == AIRPLANE_ENTRANCE_COL:
                     ACTIVE_ROBOTS[i].setIsOutside(True)
+                    RAMP_IS_AVAILABLE = False
+                    ACTIVE_ROBOTS[i].setIsOnRamp(True)
+
+                if ACTIVE_ROBOTS[i].col == RAMP_ENTRANCE_COL and ACTIVE_ROBOTS[i].row == RAMP_ENTRANCE_ROW:
                     NUM_OF_ROBOTS_INSIDE = NUM_OF_ROBOTS_INSIDE - 1
+                    RAMP_IS_AVAILABLE = True
 
                 if ACTIVE_ROBOTS[i].col == LUGGAGE_COL and ACTIVE_ROBOTS[i].row == LUGGAGE_ROW:
                     logic_grid[LUGGAGE_ROW][LUGGAGE_COL] = 1
@@ -156,7 +161,6 @@ def update_active_robot(id):
                 simulation_renders.append(updated_grid)
                 if ACTIVE_ROBOTS[i].row == RAMP_ENTRANCE_ROW and ACTIVE_ROBOTS[i].col == RAMP_ENTRANCE_COL:
                     ACTIVE_ROBOTS[i].setIsOnRamp(True)
-                    ACTIVE_ROBOTS[i].setIsOutside(False)
                     RAMP_IS_AVAILABLE = False
 
             # When on the ramp and carrying luggage, go inside the airplane
